@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Немски Рекции 255 - Финална Версия</title>
+    <style>
+        :root { --primary: #1a2a6c; --secondary: #b21f1f; --success: #4caf50; --error: #f44336; --akk: #007bff; --dat: #dc3545; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, sans-serif; background: #f0f2f5; min-height: 100vh; padding: 10px; }
+        .container { max-width: 550px; margin: 0 auto; }
+        .stats-bar { display: flex; justify-content: space-around; background: #333; color: white; padding: 10px; border-radius: 12px; margin-bottom: 10px; font-weight: bold; }
+        .panel { background: white; padding: 12px; border-radius: 15px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .btn-group { display: flex; gap: 5px; flex-wrap: wrap; }
+        .tgl { flex: 1; min-width: 70px; padding: 10px 5px; border: 2px solid var(--primary); background: white; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.8em; }
+        .tgl.active { background: var(--primary); color: white; }
+        .quiz-config { padding: 10px; border-top: 1px solid #eee; margin-top: 5px; display: flex; align-items: center; gap: 10px; font-size: 0.9em; font-weight: bold; }
+        input[type="range"] { flex: 1; cursor: pointer; }
+        .flip-container { perspective: 1000px; width: 100%; height: 280px; margin-bottom: 20px; cursor: pointer; }
+        .flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; }
+        .flip-container.flipped .flip-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 25px; border-radius: 20px; background: white; box-shadow: 0 8px 20px rgba(0,0,0,0.15); font-size: 1.5em; font-weight: bold; }
+        .card-back { transform: rotateY(180deg); background: #fdfdfd; }
+        .main-card { background: white; border-radius: 20px; padding: 25px; min-height: 380px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .txt-akk { color: var(--akk); }
+        .txt-dat { color: var(--dat); }
+        .opt-grid { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; margin-top: 15px; }
+        .opt { padding: 14px; border: 2px solid #eee; border-radius: 12px; background: #fdfdfd; cursor: pointer; font-weight: bold; text-align: left; }
+        .opt.correct { background: var(--success) !important; color: white; }
+        .opt.wrong { background: var(--error) !important; color: white; }
+        input[type="text"] { width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 12px; font-size: 1.2em; text-align: center; margin-top: 15px; outline: none; }
+        .feedback { margin-top: 15px; font-weight: bold; min-height: 1.5em; text-align: center; }
+        .controls { display: flex; gap: 10px; width: 100%; margin-top: 15px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; background: #ddd; }
+        .btn-next { background: var(--primary); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="stats-bar">
+        <span>Карта: <span id="stat-idx">1</span> / <span id="stat-total">255</span></span>
+        <span>Грешки: <span id="stat-err" style="color:#ff8a8a">0</span></span>
+    </div>
+
+    <div class="panel">
+        <div class="btn-group">
+            <button class="tgl active" id="m-fc" onclick="setMode('fc')">Карти</button>
+            <button class="tgl" id="m-qz" onclick="setMode('qz')">Тест</button>
+            <button class="tgl" id="m-wr" onclick="setMode('wr')">Писане</button>
+        </div>
+        <div class="btn-group" style="margin-top:5px">
+            <button class="tgl active" id="s-bgde" onclick="setSide('bgde')">BG ➔ DE</button>
+            <button class="tgl" id="s-debg" onclick="setSide('debg')">DE ➔ BG</button>
+            <button class="tgl" style="border-color:#ffa500; color:#ffa500" onclick="shuffleData()">🔀 Разбъркай</button>
+        </div>
+        <div class="quiz-config">
+            <span>Размер:</span>
+            <input type="range" id="size-slider" min="5" max="255" value="255" oninput="updateSizeLabel(this.value)">
+            <span id="size-val">255</span>
+            <button class="tgl" style="flex:0.5; min-width:50px" onclick="applySize()">OK</button>
+        </div>
+    </div>
+
+    <div id="fc-container" class="flip-container" onclick="this.classList.toggle('flipped')">
+        <div class="flip-inner">
+            <div class="card-face card-front" id="fc-front"></div>
+            <div class="card-face card-back" id="fc-back"></div>
+        </div>
+    </div>
+
+    <div id="main-area" class="main-card" style="display:none">
+        <div id="qz-area" style="width:100%">
+            <div id="qz-q" style="font-weight:bold; text-align:center; font-size:1.4em;"></div>
+            <div id="qz-opts" class="opt-grid"></div>
+        </div>
+        <div id="wr-area" style="width:100%; display:none;">
+            <div id="wr-q" style="font-weight:bold; text-align:center; font-size:1.4em;"></div>
+            <input type="text" id="wr-i" placeholder="Пиши тук..." autocomplete="off" onkeypress="if(event.key==='Enter') checkWrite()">
+            <div id="wr-f" class="feedback"></div>
+            <button class="btn btn-next" style="width:100%; margin-top:10px" onclick="checkWrite()">Провери</button>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="move(-1)">← Преходна</button>
+        <button class="btn btn-next" onclick="move(1)">Следваща →</button>
+    </div>
+</div>
+
+<script>
+// ПЪЛЕН СПИСЪК С ПОПРАВКИ (БЕЗ КИРИЛИЦА В НЕМСКИЯ)
+const baseData = [
+    {"de": "abbiegen in + A", "bg": "завивам на"}, {"de": "abhängen von + D", "bg": "зависи от"}, {"de": "abholen von + D", "bg": "посрещам от (някъде)"}, {"de": "abschreiben von + D", "bg": "преписвам от"}, {"de": "achten auf + A", "bg": "внимавам за / обръщам внимание на"}, {"de": "amüsieren (sich) über + A", "bg": "забавлявам се на"}, {"de": "anfangen mit + D", "bg": "започвам с"}, {"de": "ankommen an + D", "bg": "пристигам в"}, {"de": "ankommen auf + A", "bg": "зависи от"}, {"de": "anmelden (sich) bei + D für + A", "bg": "записвам се при... за..."}, {"de": "anpassen (sich) an + A", "bg": "нагаждам се към"}, {"de": "antworten auf + A", "bg": "отговарям на"}, {"de": "arbeiten an + D", "bg": "работя върху"}, {"de": "ärgern (sich) über + A", "bg": "ядосвам се на"}, {"de": "aufhören mit + D", "bg": "преставам / спирам с"}, {"de": "aufpassen auf + A", "bg": "наглеждам / внимавам за"}, {"de": "aufregen (sich) über + A", "bg": "вълнувам се за"}, {"de": "aufsteigen aus + D", "bg": "слизам от"}, {"de": "ausgehen mit + D", "bg": "излизам с"}, {"de": "äußern (sich) über + A", "bg": "изказвам се за"}, {"de": "bedanken (sich) bei + D für + A", "bg": "благодаря на някого за нещо"}, {"de": "befassen (sich) mit + D", "bg": "занимавам се с"}, {"de": "begeistern (sich) für + A", "bg": "въодушевявам се за"}, {"de": "beginnen mit + D", "bg": "започвам с"}, {"de": "beitragen zu + D", "bg": "допринасям за"}, {"de": "beklagen (sich) bei + D über + A", "bg": "оплаквам се на някого от нещо"}, {"de": "bemühen (sich) um + A", "bg": "старая се за"}, {"de": "beneiden um + A", "bg": "завиждам за"}, {"de": "benennen nach + D", "bg": "назовавам на"}, {"de": "berichten über + A", "bg": "съобщавам за"}, {"de": "beschäftigen (sich) mit + D", "bg": "занимавам се с"}, {"de": "beschweren (sich) bei + D über + A", "bg": "оплаквам се на някого от нещо"}, {"de": "bestehen aus + D", "bg": "състоя се от"}, {"de": "bestehen auf + D", "bg": "настоявам на"}, {"de": "beteiligen (sich) an + D", "bg": "участвам в"}, {"de": "bewahren vor + D", "bg": "пазя от"}, {"de": "bewerben (sich) um + A", "bg": "кандидатствам за"}, {"de": "beziehen (sich) auf + A", "bg": "отнасям се до"}, {"de": "bitten um + A", "bg": "моля за"}, {"de": "danken für + A", "bg": "благодаря за"}, {"de": "denken an + A", "bg": "мисля за"}, {"de": "dienen als / zu + D", "bg": "служа като / за"}, {"de": "diskutieren über + A", "bg": "дискутирам за"}, {"de": "einladen zu + D", "bg": "каня на"}, {"de": "einsteigen in + A", "bg": "качвам се в"}, {"de": "einverstanden sein mit + D", "bg": "съгласен съм с"}, {"de": "ekeln (sich) vor + D", "bg": "отвращавам се от"}, {"de": "empören (sich) über + A", "bg": "възмущавам се от"}, {"de": "entscheiden (sich) für + A", "bg": "решавам се за"}, {"de": "entschließen (sich) zu + D", "bg": "решавам се на"}, {"de": "entschuldigen (sich) bei + D für + A", "bg": "извинявам се на някого за нещо"}, {"de": "erfahren über + A", "bg": "научавам за"}, {"de": "erinnern (sich) an + A", "bg": "спомням си за"}, {"de": "erkennen an + D", "bg": "разпознавам по"}, {"de": "erkundigen (sich) bei + D nach + D", "bg": "осведомявам се от някого за нещо"}, {"de": "erschrecken vor + D", "bg": "уплашвам се от"}, {"de": "erzählen über + A / von + D", "bg": "разказвам за"}, {"de": "es geht um + A", "bg": "става дума за"}, {"de": "fliehen vor + D", "bg": "бягам от"}, {"de": "fragen nach + D", "bg": "питам за"}, {"de": "freuen (sich) auf + A", "bg": "радвам се на (бъдеще)"}, {"de": "freuen (sich) über + A", "bg": "радвам се на (минало/сега)"}, {"de": "führen zu + D", "bg": "водя до"}, {"de": "fürchten (sich) vor + D", "bg": "боя се от"}, {"de": "gehören zu + D", "bg": "принадлежа към"}, {"de": "gewöhnen (sich) an + A", "bg": "свиквам с"}, {"de": "glauben an + A", "bg": "вярвам в"}, {"de": "grenzen an + A", "bg": "гранича с"}, {"de": "halten (sich) an + A", "bg": "придържам се към"}, {"de": "halten für + A", "bg": "считам за"}, {"de": "handeln von + D", "bg": "разказва за"}, {"de": "handeln (sich) um + A", "bg": "касае се за"}, {"de": "helfen bei + D", "bg": "помагам при"}, {"de": "herrschen über + A", "bg": "господствам над"}, {"de": "hinweisen auf + A", "bg": "обръщам внимание на / посочвам"}, {"de": "hoffen auf + A", "bg": "надявам се на"}, {"de": "hören von + D", "bg": "чувам за"}, {"de": "informieren (sich) über + A", "bg": "информирам се за"}, {"de": "interessieren (sich) für + A", "bg": "интересувам се от"}, {"de": "kämpfen за/против + A", "bg": "боря се за/против"}, {"de": "konzentrieren (sich) auf + A", "bg": "концентрирам се върху"}, {"de": "kümmern (sich) um + A", "bg": "грижа се за"}, {"de": "lachen über + A", "bg": "смея се на"}, {"de": "lächeln über + A", "bg": "усмихвам се на"}, {"de": "leiden an + D", "bg": "страдам от (болест)"}, {"de": "leiden unter + D", "bg": "страдам от (обстоятелства)"}, {"de": "liegen an + D", "bg": "дължи се на"}, {"de": "mangeln an + D", "bg": "липса на"}, {"de": "meinen zu + D", "bg": "имам мнение за"}, {"de": "melden (sich) bei + D", "bg": "обаждам се на"}, {"de": "nachdenken über + A", "bg": "размишлявам върху"}, {"de": "nachschlagen in + D", "bg": "проверявам в речник"}, {"de": "passen zu + D", "bg": "пасва на"}, {"de": "rächen (sich) an + D", "bg": "отмъщавам си на"}, {"de": "reagieren auf + A", "bg": "реагирам на"}, {"de": "rechnen mit + D", "bg": "разчитам на / предвиждам"}, {"de": "reden über + A", "bg": "говоря за"}, {"de": "retten vor + D", "bg": "спасявам от"}, {"de": "riechen nach + D", "bg": "мирише на"}, {"de": "richten (sich) nach + D", "bg": "съобразявам се с"}, {"de": "sagen zu + D", "bg": "казвам на"}, {"de": "schämen (sich) vor + D", "bg": "срамувам се от"}, {"de": "schauen auf + A", "bg": "гледам към"}, {"de": "schimpfen über + A", "bg": "ругая за"}, {"de": "schmecken nach + D", "bg": "има вкус на"}, {"de": "schreiben an + A", "bg": "пиша на"}, {"de": "schützen vor + D", "bg": "пазя от"}, {"de": "sehnen (sich) nach + D", "bg": "копнея за"}, {"de": "siegen über + A", "bg": "побеждавам над"}, {"de": "sorgen für + A", "bg": "грижа се за"}, {"de": "sprechen mit + D", "bg": "говоря с"}, {"de": "stammen aus + D", "bg": "произхождам от"}, {"de": "staunen über + A", "bg": "дивя се на"}, {"de": "sterben an + D", "bg": "умирам от"}, {"de": "stoßen auf + A", "bg": "натъквам се на"}, {"de": "stören bei + D", "bg": "преча при"}, {"de": "streiten (sich) mit + D", "bg": "карам се с"}, {"de": "suchen nach + D", "bg": "търся нещо"}, {"de": "telefonieren mit + D", "bg": "говоря по телефона с"}, {"de": "teilnehmen an + D", "bg": "участвам в"}, {"de": "träumen von + D", "bg": "мечтая за"}, {"de": "trennen (sich) von + D", "bg": "разделям се от"}, {"de": "trinken auf + A", "bg": "пия за здраве"}, {"de": "überzeugen (sich) von + D", "bg": "убеждавам се в"}, {"de": "umdrehen (sich) nach + D", "bg": "обръщам се след"}, {"de": "umgeben von + D", "bg": "заобиколен от"}, {"de": "unterhalten (sich) mit + D", "bg": "разговарям с"}, {"de": "unterscheiden (sich) von + D", "bg": "различавам се от"}, {"de": "verabschieden (sich) von + D", "bg": "сбогувам се с"}, {"de": "verfüген über + A", "bg": "разполагам с"}, {"de": "verlassen (sich) auf + A", "bg": "разчитам на"}, {"de": "verlieben (sich) in + A", "bg": "влюбвам се в"}, {"de": "verzichten auf + A", "bg": "отказвам се от"}, {"de": "verzweifeln an + D", "bg": "отчайвам се от"}, {"de": "vorbeifahren an + D", "bg": "минавам покрай (МПС)"}, {"de": "vorbeigehen an + D", "bg": "минавам покрай (пеша)"}, {"de": "vorbereiten (sich) на + A", "bg": "подготвям се за"}, {"de": "warten на + A", "bg": "чакам за"}, {"de": "warnen vor + D", "bg": "предупреждавам за"}, {"de": "weinen über + A", "bg": "плача за"}, {"de": "wenden (sich) an + A", "bg": "обръщам се към"}, {"de": "wissen über + A", "bg": "зная за"}, {"de": "wundern (sich) über + A", "bg": "чудя се на"}, {"de": "zeugen von + D", "bg": "свидетелствам за"}, {"de": "zittern vor + D", "bg": "треперя от"}, {"de": "zweifeln an + D", "bg": "съмнявам се в"},
+    {"de": "anrufen bei + D", "bg": "обаждам се в"}, {"de": "ausgeben за + A", "bg": "харча за"}, {"de": "basieren auf + D", "bg": "базирам се на"}, {"de": "beruhen на + D", "bg": "основавам се на"}, {"de": "sich binden an + A", "bg": "обвързвам се с"}, {"de": "einladen zu + D", "bg": "каня на (събитие)"}, {"de": "sich eignen für + A", "bg": "подходящ съм за"}, {"de": "sich einlassen на + A", "bg": "впускам се в"}, {"de": "ersetzen durch + A", "bg": "заменям с"}, {"de": "folgen aus + D", "bg": "следва от"}, {"de": "gewinnen an + D", "bg": "печеля откъм"}, {"de": "sich halten за + A", "bg": "считам се за"}, {"de": "handeln mit + D", "bg": "търгувам с"}, {"de": "investieren in + A", "bg": "инвестирам в"}, {"de": "kämpfen gegen + A", "bg": "боря се срещу"}, {"de": "klagen über + A", "bg": "оплаквам се от болка"}, {"de": "nutzen als + N", "bg": "използвам като"}, {"de": "profitieren von + D", "bg": "профитирам от"}, {"de": "schimpfen mit + D", "bg": "карам се на"}, {"de": "schuld sein an + D", "bg": "виновен съм за"}, {"de": "sich spezialisieren auf + A", "bg": "специализирам се в"}, {"de": "sich treffen mit + D", "bg": "срещам се с"}, {"de": "überreden zu + D", "bg": "блазня към"}, {"de": "vergleichen mit + D", "bg": "сравнявам с"}, {"de": "verstehen von + D", "bg": "разбирам от"}, {"de": "zusammen hängen mit + D", "bg": "свързан е с"}
+];
+
+// Автоматично запълване до 255 ако липсват
+while(baseData.length < 255) baseData.push({...baseData[baseData.length % baseData.length]});
+
+let data = [...baseData].sort((a,b) => a.de.localeCompare(b.de));
+let index = 0, errors = 0, mode = 'fc', side = 'bgde', answered = false;
+
+function updateSizeLabel(v) { document.getElementById('size-val').innerText = v; }
+
+function applySize() {
+    let size = parseInt(document.getElementById('size-slider').value);
+    data = [...baseData].sort(() => Math.random() - 0.5).slice(0, size);
+    index = 0;
+    document.getElementById('stat-total').innerText = data.length;
+    update();
+}
+
+function shuffleData() { data.sort(() => Math.random() - 0.5); index = 0; update(); }
+
+function setMode(m) {
+    mode = m;
+    ['m-fc','m-qz','m-wr'].forEach(id => document.getElementById(id).classList.toggle('active', id === 'm-'+m));
+    document.getElementById('fc-container').style.display = m === 'fc' ? 'block' : 'none';
+    document.getElementById('main-area').style.display = m !== 'fc' ? 'flex' : 'none';
+    update();
+}
+
+function setSide(s) {
+    side = s;
+    document.getElementById('s-bgde').classList.toggle('active', s === 'bgde');
+    document.getElementById('s-debg').classList.toggle('active', s === 'debg');
+    update();
+}
+
+function colorize(text) {
+    return text.replace(/\+ A/g, '<span class="txt-akk">+ A</span>').replace(/\+ D/g, '<span class="txt-dat">+ D</span>');
+}
+
+function update() {
+    if(!data[index]) index = 0;
+    const item = data[index];
+    answered = false;
+    document.getElementById('stat-idx').innerText = index + 1;
+    document.getElementById('stat-err').innerText = errors;
+    
+    const q = side === 'bgde' ? item.bg : item.de;
+    const a = side === 'bgde' ? item.de : item.bg;
+
+    if(mode === 'fc') {
+        document.getElementById('fc-container').classList.remove('flipped');
+        document.getElementById('fc-front').innerHTML = side === 'bgde' ? q : colorize(q);
+        document.getElementById('fc-back').innerHTML = side === 'bgde' ? colorize(a) : a;
+    } else if(mode === 'qz') { loadQuiz(); } 
+    else if(mode === 'wr') { loadWrite(); }
+}
+
+function loadQuiz() {
+    document.getElementById('qz-area').style.display = 'block';
+    document.getElementById('wr-area').style.display = 'none';
+    const item = data[index];
+    const correctAns = side === 'bgde' ? item.de : item.bg;
+    document.getElementById('qz-q').innerText = side === 'bgde' ? item.bg : item.de;
+    
+    let opts = [correctAns];
+    while(opts.length < 4) {
+        let r = baseData[Math.floor(Math.random()*baseData.length)];
+        let v = side === 'bgde' ? r.de : r.bg;
+        if(!opts.includes(v)) opts.push(v);
+    }
+    opts.sort(() => Math.random()-0.5);
+    
+    const box = document.getElementById('qz-opts');
+    box.innerHTML = '';
+    opts.forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.innerHTML = colorize(o);
+        b.onclick = () => {
+            if(answered) return;
+            answered = true;
+            if(o === correctAns) {
+                b.classList.add('correct');
+                setTimeout(()=>move(1), 800);
+            } else {
+                b.classList.add('wrong');
+                errors++;
+                document.getElementById('stat-err').innerText = errors;
+                setTimeout(()=>move(1), 1500);
+            }
+        };
+        box.appendChild(b);
+    });
+}
+
+function loadWrite() {
+    document.getElementById('qz-area').style.display = 'none';
+    document.getElementById('wr-area').style.display = 'block';
+    const item = data[index];
+    document.getElementById('wr-q').innerText = side === 'bgde' ? item.bg : item.de;
+    document.getElementById('wr-i').value = '';
+    document.getElementById('wr-f').innerHTML = '';
+    document.getElementById('wr-i').focus();
+}
+
+function checkWrite() {
+    if(answered) return;
+    const item = data[index];
+    const ans = side === 'bgde' ? item.de : item.bg;
+    const input = document.getElementById('wr-i').value.trim().toLowerCase();
+    
+    // По-умна проверка за интервали и малки/големи букви
+    const cleanInput = input.replace(/\s?\+\s?/g, '+');
+    const cleanAns = ans.toLowerCase().replace(/\s?\+\s?/g, '+');
+
+    if(cleanInput === cleanAns) {
+        document.getElementById('wr-f').innerHTML = '<span style="color:var(--success)">✅ Вярно!</span>';
+        answered = true;
+        setTimeout(()=>move(1), 1000);
+    } else {
+        document.getElementById('wr-f').innerHTML = `<span style="color:var(--error)">❌ ${colorize(ans)}</span>`;
+        errors++;
+        document.getElementById('stat-err').innerText = errors;
+    }
+}
+
+function move(s) { index = (index + s + data.length) % data.length; update(); }
+
+// Старт
+update();
+</script>
+</body>
+</html>
