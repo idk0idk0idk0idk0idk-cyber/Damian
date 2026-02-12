@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Немски Рекции 255 - Fixed</title>
+    <style>
+        :root { --p: #1a2a6c; --s: #b21f1f; --ok: #4caf50; --err: #f44336; --akk: #007bff; --dat: #dc3545; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #f0f2f5; padding: 10px; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .stats { display: flex; justify-content: space-around; background: #333; color: #fff; padding: 12px; border-radius: 12px; margin-bottom: 10px; font-weight: bold; }
+        .panel { background: #fff; padding: 10px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn-group { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 5px; }
+        button { cursor: pointer; border: 2px solid var(--p); background: #fff; border-radius: 10px; font-weight: bold; transition: 0.2s; outline: none; }
+        .tgl { flex: 1; padding: 12px 5px; font-size: 0.75rem; text-transform: uppercase; }
+        .tgl.active { background: var(--p); color: #fff; }
+        .flip-container { perspective: 1000px; width: 100%; height: 250px; margin-bottom: 15px; }
+        .flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.4s; transform-style: preserve-3d; }
+        .flipped .flip-inner { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; border-radius: 20px; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); font-size: 1.4rem; font-weight: bold; }
+        .card-back { transform: rotateY(180deg); background: #f9f9f9; color: var(--p); }
+        .main-card { background: #fff; border-radius: 20px; padding: 20px; min-height: 300px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .opt-grid { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; margin-top: 15px; }
+        .opt { padding: 15px; text-align: left; border-color: #eee; font-size: 0.95rem; }
+        .opt.correct { background: var(--ok) !important; color: #fff; border-color: var(--ok); }
+        .opt.wrong { background: var(--err) !important; color: #fff; border-color: var(--err); }
+        .txt-akk { color: var(--akk); font-weight: bold; } .txt-dat { color: var(--dat); font-weight: bold; }
+        input[type="text"] { width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 12px; font-size: 1.1rem; text-align: center; }
+        #ar-search { width: 100%; padding: 12px; border: 2px solid var(--p); border-radius: 10px; margin-bottom: 10px; }
+        #ar-list { max-height: 350px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .ar-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; flex-direction: column; }
+        .nav { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-nav { flex: 1; padding: 15px; background: var(--p); color: #fff; border: none; font-size: 1.1rem; border-radius: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="stats">
+        <div>Карта: <span id="idx">1</span>/255</div>
+        <div style="color:#ff8a8a">Грешки: <span id="errs">0</span></div>
+    </div>
+
+    <div class="panel">
+        <div class="btn-group">
+            <button type="button" class="tgl" id="m-fc">Карти</button>
+            <button type="button" class="tgl" id="m-qz">Тест</button>
+            <button type="button" class="tgl" id="m-wr">Писане</button>
+            <button type="button" class="tgl" id="m-ar">Архив</button>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="tgl" id="s-bgde">BG ➔ DE</button>
+            <button type="button" class="tgl" id="s-debg">DE ➔ BG</button>
+            <button type="button" class="tgl" style="border-color:orange;color:orange" id="btn-shuffle">🔀 Разбъркай</button>
+        </div>
+    </div>
+
+    <div id="ar-area" class="panel" style="display:none">
+        <input type="text" id="ar-search" placeholder="Търси глагол..." oninput="search()">
+        <div id="ar-list"></div>
+    </div>
+
+    <div id="fc-area" class="flip-container" onclick="this.classList.toggle('flipped')">
+        <div class="flip-inner">
+            <div class="card-face" id="f-front"></div>
+            <div class="card-face card-back" id="f-back"></div>
+        </div>
+    </div>
+
+    <div id="main-area" class="main-card">
+        <div id="qz-area" style="width:100%">
+            <div id="qz-q" style="text-align:center;font-weight:bold;margin-bottom:10px"></div>
+            <div id="qz-opts" class="opt-grid"></div>
+        </div>
+        <div id="wr-area" style="width:100%;display:none">
+            <div id="wr-q" style="text-align:center;font-weight:bold;margin-bottom:10px"></div>
+            <input type="text" id="wr-i" placeholder="Отговор..." autocomplete="off">
+            <div id="wr-msg" style="text-align:center;margin:10px;font-weight:bold"></div>
+            <button type="button" class="btn-nav" style="width:100%" id="btn-check-wr">Провери</button>
+        </div>
+    </div>
+
+    <div class="nav" id="nav-btns">
+        <button type="button" class="btn-nav" id="btn-prev">←</button>
+        <button type="button" class="btn-nav" id="btn-next">→ Напред</button>
+    </div>
+</div>
+
+<script>
+const base = [
+    {"de":"abbiegen in + A","bg":"завивам на"},{"de":"abhängен von + D","bg":"зависи от"},{"de":"abholen von + D","bg":"посрещам от"},{"de":"abschreiben von + D","bg":"преписвам от"},{"de":"achten auf + A","bg":"внимавам за"},{"de":"amüsieren (sich) über + A","bg":"забавлявам се на"},{"de":"anfangen mit + D","bg":"започвам с"},{"de":"ankommen an + D","bg":"пристигам на"},{"de":"ankommen auf + A","bg":"зависи от"},{"de":"anmelden (sich) bei + D für + A","bg":"записвам се при... за..."},{"de":"anpassen (sich) an + A","bg":"нагаждам се към"},{"de":"anrufen bei + D","bg":"обаждам се в"},{"de":"antworten auf + A","bg":"отговарям на"},{"de":"arbeiten an + D","bg":"работя върху"},{"de":"ärgern (sich) über + A","bg":"ядосвам се на"},{"de":"aufhören mit + D","bg":"преставам с"},{"de":"aufpassen auf + A","bg":"внимавам за"},{"de":"aufregen (sich) über + A","bg":"вълнувам се за"},{"de":"aufsteigen aus + D","bg":"слизам от"},{"de":"ausgehen mit + D","bg":"излизам с"},{"de":"ausgeben für + A","bg":"харча за"},{"de":"äußern (sich) über + A","bg":"изказвам се за"},{"de":"basieren auf + D","bg":"базирам се на"},{"de":"bedanken (sich) bei + D für + A","bg":"благодаря на... за..."},{"de":"befassen (sich) mit + D","bg":"занимавам се с"},{"de":"begeistern (sich) für + A","bg":"въодушевявам се за"},{"de":"beginnen mit + D","bg":"започвам с"},{"de":"beitragen zu + D","bg":"допринасям за"},{"de":"beklagen (sich) bei + D über + A","bg":"оплаквам се на... от..."},{"de":"bemühen (sich) um + A","bg":"старая се за"},{"de":"beneiden um + A","bg":"завиждам за"},{"de":"benennen nach + D","bg":"назовавам на"},{"de":"berichten über + A","bg":"съобщавам за"},{"de":"beruhen auf + D","bg":"основавам се на"},{"de":"beschäftigen (sich) mit + D","bg":"занимавам се с"},{"de":"beschweren (sich) bei + D über + A","bg":"оплаквам се на... от..."},{"de":"bestehen aus + D","bg":"състоя се от"},{"de":"bestehen auf + D","bg":"настоявам на"},{"de":"beteiligen (sich) an + D","bg":"участвам в"},{"de":"bewahren vor + D","bg":"пазя от"},{"de":"bewerben (sich) um + A","bg":"кандидатствам за"},{"de":"beziehen (sich) auf + A","bg":"отнасям се до"},{"de":"binden (sich) an + A","bg":"обвързвам се с"},{"de":"bitten um + A","bg":"моля за"},{"de":"danken für + A","bg":"благодаря за"},{"de":"denken an + A","bg":"мисля за"},{"de":"dienen als / zu + D","bg":"служа като / за"},{"de":"diskutieren über + A","bg":"дискутирам за"},{"de":"eignen (sich) für + A","bg":"подходящ съм за"},{"de":"einladen zu + D","bg":"каня на"},{"de":"einlassen (sich) auf + A","bg":"впускам се в"},{"de":"einsteigen in + A","bg":"качвам се в"},{"de":"einverstanden sein mit + D","bg":"съгласен съм с"},{"de":"ekeln (sich) vor + D","bg":"отвращавам се от"},{"de":"empören (sich) über + A","bg":"възмущавам се от"},{"de":"entscheiden (sich) für + A","bg":"решавам се за"},{"de":"entschließen (sich) zu + D","bg":"решавам се на"},{"de":"entschuldigen (sich) bei + D für + A","bg":"извинявам се на... за..."},{"de":"erfahren über + A","bg":"научавам за"},{"de":"erinnern an + A","bg":"спомням си за"},{"de":"erkennen an + D","bg":"разпознавам по"},{"de":"erkundigen (sich) bei + D nach + D","bg":"осведомявам се от... за..."},{"de":"ersetzen durch + A","bg":"заменям с"},{"de":"erschrecken vor + D","bg":"уплашвам се от"},{"de":"erzählen über + A / von + D","bg":"разказвам за"},{"de":"es geht um + A","bg":"става дума за"},{"de":"fliehen vor + D","bg":"бягам от"},{"de":"folgen aus + D","bg":"следва от"},{"de":"fragen nach + D","bg":"питам за"},{"de":"freuen (sich) auf + A","bg":"радвам се на (бъдеще)"},{"de":"freuen (sich) über + A","bg":"радвам се на (минало/сега)"},{"de":"führen zu + D","bg":"водя до"},{"de":"fürchten (sich) vor + D","bg":"боя се от"},{"de":"gehören zu + D","bg":"принадлежа към"},{"de":"gewöhnen (sich) an + A","bg":"свиквам с"},{"de":"gewinnen an + D","bg":"печеля откъм"},{"de":"glauben an + A","bg":"вярвам в"},{"de":"grenzen an + A","bg":"гранича с"},{"de":"halten (sich) an + A","bg":"придържам се към"},{"de":"halten für + A","bg":"считам за"},{"de":"handeln von + D","bg":"разказва за"},{"de":"handeln (sich) um + A","bg":"касае се за"},{"de":"handeln mit + D","bg":"търгувам с"},{"de":"helfen bei + D","bg":"помагам при"},{"de":"herrschen über + A","bg":"господствам над"},{"de":"hinweisen auf + A","bg":"посочвам / обръщам внимание"},{"de":"hoffen auf + A","bg":"надявам се на"},{"de":"hören von + D","bg":"чувам за"},{"de":"informieren (sich) über + A","bg":"информирам се за"},{"de":"interessieren (sich) für + A","bg":"интересувам се от"},{"de":"investieren in + A","bg":"инвестирам в"},{"de":"kämpfen für + A / gegen + A","bg":"боря се за / срещу"},{"de":"klagen über + A","bg":"оплаквам се от"},{"de":"konzentrieren (sich) auf + A","bg":"концентрирам се върху"},{"de":"kümmern (sich) um + A","bg":"грижа се за"},{"de":"lachen über + A","bg":"смея се на"},{"de":"lächeln über + A","bg":"усмихвам се на"},{"de":"leiden an + D / unter + D","bg":"страдам от (болест / обст.)"},{"de":"liegen an + D","bg":"дължи се на"},{"de":"mangeln an + D","bg":"липса на"},{"de":"meinen zu + D","bg":"имам мнение за"},{"de":"melden (sich) bei + D","bg":"обаждам се на"},{"de":"nachdenken über + A","bg":"размишлявам върху"},{"de":"nachschlagen in + D","bg":"проверявам в"},{"de":"nutzen als + N","bg":"използвам като"},{"de":"passen zu + D","bg":"пасва на"},{"de":"profitieren von + D","bg":"печеля от"},{"de":"rächen (sich) an + D","bg":"отмъщавам си на"},{"de":"reagieren auf + A","bg":"реагирам на"},{"de":"rechnen mit + D","bg":"разчитам на / предвиждам"},{"de":"reden über + A","bg":"говоря за"},{"de":"rettен vor + D","bg":"спасявам от"},{"de":"riechen nach + D","bg":"мирише на"},{"de":"richten (sich) nach + D","bg":"съобразявам се с"},{"de":"sagen zu + D","bg":"казвам на"},{"de":"schämen (sich) vor + D","bg":"срамувам се от"},{"de":"schauen auf + A","bg":"гледам към"},{"de":"schimpfen über + A / mit + D","bg":"ругая за / карам се на"},{"de":"schmecken nach + D","bg":"има вкус на"},{"de":"schreiben an + A","bg":"пиша на"},{"de":"schuld sein an + D","bg":"виновен за"},{"de":"schützen vor + D","bg":"пазя от"},{"de":"sehnen (sich) nach + D","bg":"копнея за"},{"de":"siegen über + A","bg":"побеждавам над"},{"de":"sorgen für + A","bg":"грижа се за"},{"de":"spezialisieren (sich) auf + A","bg":"специализирам се в"},{"de":"sprechen mit + D / über + A","bg":"говоря с / за"},{"de":"stammen aus + D","bg":"произхождам от"},{"de":"staunen über + A","bg":"дивя се на"},{"de":"sterben an + D","bg":"умирам от"},{"de":"stoßen auf + A","bg":"натъквам се на"},{"de":"stören bei + D","bg":"преча при"},{"de":"streiten (sich) mit + D","bg":"карам се с"},{"de":"suchen nach + D","bg":"търся нещо"},{"de":"telefonieren mit + D","bg":"говоря по тел. с"},{"de":"teilnehmen an + D","bg":"участвам в"},{"de":"träumen von + D","bg":"мечтая за"},{"de":"trennen (sich) von + D","bg":"разделям се от"},{"de":"treffen (sich) mit + D","bg":"срещам се с"},{"de":"trinken auf + A","bg":"пия за здраве"},{"de":"überreden zu + D","bg":"придумвам към"},{"de":"überzeugen (sich) von + D","bg":"убеждавам се в"},{"de":"umdrehen (sich) nach + D","bg":"обръщам се след"},{"de":"umgeben von + D","bg":"заобиколен от"},{"de":"unterhalten (sich) mit + D","bg":"разговарям с"},{"de":"unterscheiden (sich) von + D","bg":"различавам се от"},{"de":"verabschieden (sich) von + D","bg":"сбогувам се с"},{"de":"vergleichen mit + D","bg":"сравнявам с"},{"de":"verfügen über + A","bg":"разполагам с"},{"de":"verlassen (sich) auf + A","bg":"разчитам на"},{"de":"verlieben (sich) in + A","bg":"влюбвам се в"},{"de":"verstehen von + D","bg":"разбирам от"},{"de":"verzichten auf + A","bg":"отказвам се от"},{"de":"verzweifeln an + D","bg":"отчайвам се от"},{"de":"vorbeifahren an + D","bg":"минавам покрай (МПС)"},{"de":"vorbeigehen an + D","bg":"минавам покрай (пеша)"},{"de":"vorbereiten (sich) auf + A","bg":"подготвям се за"},{"de":"warten auf + A","bg":"чакам за"},{"de":"warnen vor + D","bg":"предупреждавам за"},{"de":"weinen über + A","bg":"плача за"},{"de":"wenden (sich) an + A","bg":"обръщам се към"},{"de":"wissen über + A","bg":"зная за"},{"de":"wundern (sich) über + A","bg":"чудя се на"},{"de":"zeugen von + D","bg":"свидетелствам за"},{"de":"zittern vor + D","bg":"треперя от"},{"de":"zusammenhängen mit + D","bg":"свързан е с"},{"de":"zweifeln an + D","bg":"съмнявам се в"}
+];
+
+let data = [...base], idx = 0, errs = 0, mode = 'fc', side = 'bgde', busy = false;
+
+function clr(t) { 
+    if(!t) return "";
+    return t.replace(/\+ A/g,'<span class="txt-akk">+ A</span>').replace(/\+ D/g,'<span class="txt-dat">+ D</span>'); 
+}
+
+function render() {
+    const item = data[idx];
+    document.getElementById('idx').innerText = idx + 1;
+    document.getElementById('errs').innerText = errs;
+    busy = false;
+
+    const q = side==='bgde'?item.bg:item.de;
+    const a = side==='bgde'?item.de:item.bg;
+
+    if(mode==='fc') {
+        document.getElementById('fc-area').classList.remove('flipped');
+        document.getElementById('f-front').innerHTML = side==='bgde'?q:clr(q);
+        document.getElementById('f-back').innerHTML = side==='bgde'?clr(a):a;
+    } else if(mode==='qz') {
+        document.getElementById('qz-q').innerHTML = side==='bgde'?q:clr(q);
+        const pool = base.map(i => side==='bgde'?i.de:i.bg);
+        const opts = [a, ...pool.filter(x=>x!==a).sort(()=>.5-Math.random()).slice(0,3)].sort(()=>.5-Math.random());
+        const box = document.getElementById('qz-opts');
+        box.innerHTML = '';
+        opts.forEach(o => {
+            const b = document.createElement('button');
+            b.className = 'opt'; b.innerHTML = side==='bgde'?clr(o):o;
+            b.onclick = () => {
+                if(busy) return; busy = true;
+                if(o === a) { b.classList.add('correct'); setTimeout(()=>move(1), 600); }
+                else { b.classList.add('wrong'); errs++; document.getElementById('errs').innerText = errs; setTimeout(()=>busy=false, 1000); }
+            };
+            box.appendChild(b);
+        });
+    } else if(mode==='wr') {
+        document.getElementById('wr-q').innerHTML = side==='bgde'?q:clr(q);
+        document.getElementById('wr-i').value = '';
+        document.getElementById('wr-msg').innerText = '';
+    }
+}
+
+function checkWr() {
+    const a = side==='bgde'?data[idx].de:data[idx].bg;
+    const inp = document.getElementById('wr-i').value.trim().toLowerCase().replace(/\s?\+\s?/g,'+');
+    const target = a.toLowerCase().replace(/\s?\+\s?/g,'+');
+    if(inp === target) {
+        document.getElementById('wr-msg').innerHTML = '<span style="color:var(--ok)">✅ Вярно</span>';
+        setTimeout(()=>move(1), 800);
+    } else {
+        document.getElementById('wr-msg').innerHTML = `<span style="color:var(--err)">❌ ${clr(a)}</span>`;
+        errs++; document.getElementById('errs').innerText = errs;
+    }
+}
+
+function move(s) { idx = (idx+s+data.length)%data.length; render(); }
+function shuffle() { data.sort(()=>.5-Math.random()); idx=0; render(); }
+
+function search() {
+    const t = document.getElementById('ar-search').value.toLowerCase();
+    const list = document.getElementById('ar-list');
+    list.innerHTML = [...base].sort((a,b)=>a.de.localeCompare(b.de))
+        .filter(i => i.de.toLowerCase().includes(t) || i.bg.toLowerCase().includes(t))
+        .map(i => `<div class="ar-item"><strong>${clr(i.de)}</strong><span style="font-size:0.8rem;color:#666">${i.bg}</span></div>`).join('');
+}
+
+// Прикрепяне на събития
+document.getElementById('btn-next').onclick = () => move(1);
+document.getElementById('btn-prev').onclick = () => move(-1);
+document.getElementById('btn-shuffle').onclick = () => shuffle();
+document.getElementById('btn-check-wr').onclick = () => checkWr();
+
+document.querySelectorAll('.tgl').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const id = btn.id;
+        if(id.startsWith('m-')) {
+            mode = id.split('-')[1];
+            document.getElementById('ar-area').style.display = mode==='ar'?'block':'none';
+            document.getElementById('fc-area').style.display = mode==='fc'?'block':'none';
+            document.getElementById('main-area').style.display = (mode==='qz'||mode==='wr')?'flex':'none';
+            document.getElementById('qz-area').style.display = mode==='qz'?'block':'none';
+            document.getElementById('wr-area').style.display = mode==='wr'?'block':'none';
+            document.getElementById('nav-btns').style.display = mode==='ar'?'none':'flex';
+            if(mode==='ar') search();
+        } else { side = id.split('-')[1]; }
+        document.querySelectorAll('.tgl').forEach(b => b.classList.toggle('active', b.id==='m-'+mode || b.id==='s-'+side));
+        render();
+    });
+});
+
+window.onload = () => {
+    document.getElementById('m-fc').classList.add('active');
+    document.getElementById('s-bgde').classList.add('active');
+    render();
+};
+</script>
+</body>
+</html>
